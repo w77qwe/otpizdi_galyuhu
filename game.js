@@ -29,19 +29,67 @@
     const BOSS_IMG = new Image();
     BOSS_IMG.src = 'shit_final.png';
 
+    // ======= ЗВУКИ =======
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+
+    function loadSound(src, volume, loop) {
+        const a   = new Audio(src);
+        a.volume  = volume || 1;
+        a.loop    = !!loop;
+        a.preload = 'auto';
+        return a;
+    }
+
+    function playSound(snd) {
+        try {
+            const s = snd.cloneNode();
+            s.volume = snd.volume;
+            s.play();
+        } catch (e) {}
+    }
+
+    // Саундтрек
+    const musicTrack = loadSound('crystals.mp3', 0.4, true);
+
+    // Звуки (замени файлы на свои — названия шаблонные)
+    const sndShoot     = loadSound('snd_shoot.mp3',      0.3);
+    const sndHit       = loadSound('snd_hit.mp3',        0.4);
+    const sndKill      = loadSound('snd_kill.mp3',       0.5);
+    const sndBossHit   = loadSound('snd_boss_hit.mp3',   0.5);
+    const sndBossKill  = loadSound('snd_boss_kill.mp3',  0.7);
+    const sndPlayerHit = loadSound('snd_player_hit.mp3', 0.6);
+    const sndGameover  = loadSound('snd_gameover.mp3',   0.7);
+    const sndWaveDone  = loadSound('snd_wave_done.mp3',  0.5);
+    const sndWaveStart = loadSound('snd_wave_start.mp3', 0.5);
+    const sndBossWarn  = loadSound('snd_boss_warn.mp3',  0.6);
+
+    function startMusic() {
+        musicTrack.currentTime = 0;
+        musicTrack.play().catch(() => {});
+    }
+
+    function stopMusic() {
+        musicTrack.pause();
+        musicTrack.currentTime = 0;
+    }
+
     // ======= КОНФИГ =======
     const CFG = {
         playerSpeed : 7,
         bulletSpeed : 11,
         fireRate    : 170,
-        enemySpeed  : 1.5,
+        enemyBaseHp : 2,
+        enemyHpGrow : 0.4,
+        enemySpeed  : 1.2,
         enemyCount  : 4,
         bossEvery   : 5,
-        bossHp      : 15,
+        bossHp      : 20,
+        bossHpGrow  : 3,
         lives       : 3,
         invincTime  : 2000,
         wavePause   : 2500,
         spawnDelay  : 1200,
+        spawnSafeY  : 60,
     };
 
     // ======= СОСТОЯНИЕ =======
@@ -63,6 +111,7 @@
 
     let keys    = {};
     let pointerX = null;
+    let touchActive = false;
     let firing  = false;
     let fireTimer = 0;
 
@@ -148,7 +197,7 @@
         ctx.save();
         ctx.translate(x, y);
 
-        // Двигатель (пламя)
+        // Двигатель
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#f80';
         ctx.fillStyle = '#f80';
@@ -191,6 +240,7 @@
     // ============================================================
     function shoot() {
         bullets.push({ x: player.x, y: player.y - 28, w: 4, h: 14 });
+        playSound(sndShoot);
     }
 
     function handleFiring(dt) {
@@ -230,13 +280,15 @@
     function spawnEnemy(isBoss) {
         const sz  = isBoss ? 110 : 48 + Math.random() * 24;
         const spd = isBoss
-            ? 0.7 + wave * 0.08
-            : CFG.enemySpeed + wave * 0.15 + Math.random() * 1.2;
-        const hp  = isBoss ? CFG.bossHp + wave * 2 : 1;
+            ? 0.6 + wave * 0.06
+            : CFG.enemySpeed + wave * 0.12 + Math.random() * 1;
+        const hp  = isBoss
+            ? CFG.bossHp + wave * CFG.bossHpGrow
+            : Math.ceil(CFG.enemyBaseHp + wave * CFG.enemyHpGrow);
 
         enemies.push({
             x: Math.random() * (W - sz * 2) + sz,
-            y: -sz,
+            y: -sz - 20,
             w: sz,
             h: sz,
             speed: spd,
@@ -247,38 +299,101 @@
             zigzag: !isBoss && Math.random() > 0.4,
             zigAmp: (Math.random() - 0.5) * 4,
             angle: Math.random() * Math.PI * 2,
-            flash: 0
+            flash: 0,
+            visible: false,
+
+            // Босс — паттерн движения
+            bossPhase: 0,
+            bossDir: Math.random() > 0.5 ? 1 : -1,
+            bossDiveTimer: 0,
+            bossDiving: false,
+            bossBaseY: 0,
         });
     }
 
     function updateEnemies(dt) {
         for (let i = enemies.length - 1; i >= 0; i--) {
             const e = enemies[i];
-            e.y += e.speed;
 
-            if (e.zigzag) {
-                e.angle += 0.04;
-                e.x += Math.sin(e.angle) * e.zigAmp;
+            // Пока не на экране — просто двигаем вниз
+            if (!e.visible) {
+                e.y += e.speed * 1.5;
+                if (e.y + e.h / 2 >= CFG.spawnSafeY) {
+                    e.visible = true;
+                    if (e.boss) e.bossBaseY = e.y;
+                }
+                continue;
             }
 
+            // === Обычный враг ===
+            if (!e.boss) {
+                e.y += e.speed;
+                if (e.zigzag) {
+                    e.angle += 0.04;
+                    e.x += Math.sin(e.angle) * e.zigAmp;
+                }
+                e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
+
+                if (e.y > H + e.h) {
+                    enemies.splice(i, 1);
+                    playerHit();
+                    continue;
+                }
+            }
+
+            // === БОСС ===
             if (e.boss) {
-                e.x += Math.sin(Date.now() / 600) * 2.5;
-                if (e.y > H * 0.22) e.y = H * 0.22;
+                // Движение влево-вправо
+                const bossSpeedX = 2 + wave * 0.3;
+                e.x += e.bossDir * bossSpeedX;
+
+                if (e.x < e.w / 2 + 20) {
+                    e.x = e.w / 2 + 20;
+                    e.bossDir = 1;
+                }
+                if (e.x > W - e.w / 2 - 20) {
+                    e.x = W - e.w / 2 - 20;
+                    e.bossDir = -1;
+                }
+
+                // Ныряние к игроку
+                e.bossDiveTimer += dt;
+                const diveInterval = Math.max(2500, 5000 - wave * 200);
+
+                if (!e.bossDiving && e.bossDiveTimer > diveInterval) {
+                    e.bossDiving = true;
+                    e.bossDiveTimer = 0;
+                }
+
+                if (e.bossDiving) {
+                    e.y += 3.5 + wave * 0.2;
+                    if (e.y > H * 0.6) {
+                        e.bossDiving = false;
+                        e.bossDiveTimer = 0;
+                    }
+                } else {
+                    // Возврат на высоту
+                    const targetY = H * 0.18;
+                    if (e.y > targetY + 5) {
+                        e.y -= 1.8;
+                    } else if (e.y < targetY - 5) {
+                        e.y += 0.5;
+                    }
+                    // Лёгкая качка
+                    e.y += Math.sin(Date.now() / 800) * 0.5;
+                }
+
+                e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
             }
 
-            e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
             if (e.flash > 0) e.flash -= dt;
-
-            // Улетел за экран — урон игроку
-            if (!e.boss && e.y > H + e.h) {
-                enemies.splice(i, 1);
-                playerHit();
-            }
         }
     }
 
     function drawEnemies() {
         for (const e of enemies) {
+            if (!e.visible) continue;
+
             ctx.save();
 
             if (e.flash > 0) {
@@ -288,30 +403,32 @@
 
             ctx.drawImage(e.img, e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
 
-            // HP-бар босса
-            if (e.boss && e.hp > 0) {
-                const bw = e.w * 1.3;
-                const bh = 8;
+            // HP-бар (для всех кто имеет maxHp > 1)
+            if (e.maxHp > 1 && e.hp > 0) {
+                const bw = e.w * (e.boss ? 1.3 : 1);
+                const bh = e.boss ? 8 : 5;
                 const bx = e.x - bw / 2;
-                const by = e.y - e.h / 2 - 20;
+                const by = e.y - e.h / 2 - (e.boss ? 20 : 12);
                 const ratio = e.hp / e.maxHp;
 
                 ctx.fillStyle = '#222';
                 ctx.fillRect(bx, by, bw, bh);
-
                 ctx.fillStyle = ratio > 0.5 ? '#0f0' : ratio > 0.25 ? '#ff0' : '#f00';
                 ctx.fillRect(bx, by, bw * ratio, bh);
-
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(bx, by, bw, bh);
+            }
 
+            // Текст для босса
+            if (e.boss && e.hp > 0) {
+                const by = e.y - e.h / 2 - 28;
                 ctx.fillStyle = '#ff0';
                 ctx.font = 'bold 14px Orbitron';
                 ctx.textAlign = 'center';
                 ctx.shadowBlur = 8;
                 ctx.shadowColor = '#ff0';
-                ctx.fillText('ГАЛЮХА-БОСС', e.x, by - 6);
+                ctx.fillText('ГАЛЮХА-БОСС', e.x, by);
             }
 
             ctx.restore();
@@ -319,7 +436,7 @@
     }
 
     // ============================================================
-    //  ЧАСТИЦЫ (взрывы)
+    //  ЧАСТИЦЫ
     // ============================================================
     function boom(x, y, count, color) {
         for (let i = 0; i < count; i++) {
@@ -363,7 +480,7 @@
     }
 
     // ============================================================
-    //  ЛЕТАЮЩИЙ ТЕКСТ (+100, "ВОЛНА 5" и т.д.)
+    //  ЛЕТАЮЩИЙ ТЕКСТ
     // ============================================================
     function addText(x, y, text, color, size, decay) {
         floatTexts.push({
@@ -406,29 +523,40 @@
     }
 
     function checkCollisions() {
-        // Пули → Враги
+        // Пули → Враги (ТОЛЬКО ВИДИМЫЕ!)
         for (let bi = bullets.length - 1; bi >= 0; bi--) {
             const b = bullets[bi];
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
+                if (!e.visible) continue; // ← ВАЖНО: не бьём невидимых
+
                 if (dist(b.x, b.y, e.x, e.y) < e.w / 2 + 6) {
                     bullets.splice(bi, 1);
                     e.hp--;
                     e.flash = 80;
                     boom(b.x, b.y, 4, '#0ff');
 
+                    if (e.boss) {
+                        playSound(sndBossHit);
+                    } else {
+                        playSound(sndHit);
+                    }
+
                     if (e.hp <= 0) {
                         const pts = e.boss ? 500 * wave : 100;
                         score += pts;
                         elScore.textContent = score;
 
-                        boom(e.x, e.y, e.boss ? 50 : 18, e.boss ? '#ff0' : '#f80');
+                        boom(e.x, e.y, e.boss ? 55 : 20, e.boss ? '#ff0' : '#f80');
                         addText(e.x, e.y, '+' + pts, e.boss ? '#ff0' : '#0ff');
 
                         if (e.boss) {
                             bossAlive = false;
-                            doShake(14, 500);
+                            doShake(16, 600);
                             addText(W / 2, H / 2, 'ГАЛЮХА УНИЧТОЖЕНА!', '#0f0', 26, 0.008);
+                            playSound(sndBossKill);
+                        } else {
+                            playSound(sndKill);
                         }
                         enemies.splice(ei, 1);
                     }
@@ -437,10 +565,12 @@
             }
         }
 
-        // Игрок → Враги
+        // Игрок → Враги (ТОЛЬКО ВИДИМЫЕ!)
         if (!invincible) {
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
+                if (!e.visible) continue;
+
                 if (dist(player.x, player.y, e.x, e.y) < e.w / 2 + 16) {
                     if (!e.boss) enemies.splice(ei, 1);
                     boom(player.x, player.y, 22, '#f44');
@@ -461,12 +591,17 @@
         invincible = true;
         invTimer = CFG.invincTime;
         doShake(8, 250);
+        playSound(sndPlayerHit);
+
         if (lives <= 0) gameOver();
     }
 
     function gameOver() {
         running = false;
         cancelAnimationFrame(animId);
+        stopMusic();
+        playSound(sndGameover);
+
         elFinalScore.textContent = score;
         elFinalWave.textContent  = wave;
         setTimeout(() => showScreen(overScreen), 600);
@@ -501,11 +636,13 @@
             spawnEnemy(true);
             bossAlive = true;
             addText(W / 2, H / 2 - 30, '⚠ БОСС-ГАЛЮХА ⚠', '#ff0', 28, 0.008);
+            playSound(sndBossWarn);
         } else {
             toSpawn = CFG.enemyCount + wave * 2;
             spawnInterval = Math.max(350, CFG.spawnDelay - wave * 40);
             spawnTimer = 0;
             addText(W / 2, H / 2, 'ВОЛНА ' + wave, '#0ff', 32, 0.008);
+            playSound(sndWaveStart);
         }
 
         elWave.textContent = wave;
@@ -526,6 +663,7 @@
                 waveState = 'cooldown';
                 wavePauseTimer = 0;
                 addText(W / 2, H / 2, '✔ ВОЛНА ПРОЙДЕНА!', '#0f0', 26, 0.008);
+                playSound(sndWaveDone);
             }
         } else {
             wavePauseTimer += dt;
@@ -546,7 +684,6 @@
         const dt = Math.min(time - lastTime, 50);
         lastTime = time;
 
-        // --- Обновление ---
         updateStars();
         updatePlayer(dt);
         handleFiring(dt);
@@ -558,7 +695,6 @@
         updateWave(dt);
         updateShake(dt);
 
-        // --- Отрисовка ---
         ctx.save();
         ctx.translate(shakeX, shakeY);
 
@@ -595,10 +731,13 @@
         fireTimer = 0;
         firing = false;
         pointerX = null;
+        touchActive = false;
 
         initStars();
         initPlayer();
         showScreen(gameScreen);
+
+        startMusic();
 
         running  = true;
         lastTime = performance.now();
@@ -610,6 +749,7 @@
     function toMenu() {
         running = false;
         cancelAnimationFrame(animId);
+        stopMusic();
         showScreen(menuScreen);
     }
 
@@ -627,21 +767,37 @@
         if (e.code === 'Space') firing = false;
     });
 
-    // --- Мышь (десктоп) ---
-    canvas.addEventListener('mousemove', e => { if (running) pointerX = e.clientX; });
-    canvas.addEventListener('mousedown', () => { if (running) firing = true; });
-    canvas.addEventListener('mouseup',   () => { firing = false; });
-    canvas.addEventListener('mouseleave',() => { pointerX = null; });
+    // --- Мышь (ДЕСКТОП) ---
+    canvas.addEventListener('mousemove', e => {
+        if (running && !isMobile) pointerX = e.clientX;
+    });
+    canvas.addEventListener('mousedown', e => {
+        if (running && !isMobile) firing = true;
+    });
+    canvas.addEventListener('mouseup', () => {
+        if (!isMobile) firing = false;
+    });
+    canvas.addEventListener('mouseleave', () => {
+        if (!isMobile) pointerX = null;
+    });
 
-    // --- Тач (мобилка) ---
+    // --- Тач (МОБИЛКА: удерживаешь = двигаешь + стреляешь) ---
     canvas.addEventListener('touchstart', e => {
         e.preventDefault();
-        if (running && e.touches.length) pointerX = e.touches[0].clientX;
+        if (!running) return;
+        touchActive = true;
+        if (e.touches.length) {
+            pointerX = e.touches[0].clientX;
+        }
+        firing = true; // автострельба при касании
     }, { passive: false });
 
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
-        if (running && e.touches.length) pointerX = e.touches[0].clientX;
+        if (!running) return;
+        if (e.touches.length) {
+            pointerX = e.touches[0].clientX;
+        }
     }, { passive: false });
 
     canvas.addEventListener('touchend', e => {
@@ -650,12 +806,16 @@
             pointerX = e.touches[0].clientX;
         } else {
             pointerX = null;
+            touchActive = false;
+            firing = false; // палец убран — перестаём стрелять
         }
     }, { passive: false });
 
-    // --- Кнопка огня ---
-    btnFire.addEventListener('mousedown', e => { e.stopPropagation(); firing = true; });
-    btnFire.addEventListener('mouseup',   () => { firing = false; });
+    // --- Кнопка огня (оставляем для тех кто хочет) ---
+    btnFire.addEventListener('mousedown', e => {
+        e.stopPropagation(); firing = true;
+    });
+    btnFire.addEventListener('mouseup', () => { firing = false; });
     btnFire.addEventListener('touchstart', e => {
         e.preventDefault(); e.stopPropagation(); firing = true;
     }, { passive: false });
