@@ -28,46 +28,215 @@
     const BOSS_IMG = new Image();
     BOSS_IMG.src = 'shit_final.png';
 
-    // ======= ЗВУКИ =======
+    // ============================================================
+    //  ЗВУКОВОЙ ДВИЖОК (Web Audio API)
+    // ============================================================
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    let audioCtx = null;
+    let audioReady = false;
+    const soundBuffers = {};
 
-    function loadSound(src, volume, loop) {
-        const a   = new Audio(src);
-        a.volume  = volume || 1;
-        a.loop    = !!loop;
-        a.preload = 'auto';
-        return a;
+    // Список звуков для загрузки
+    const SOUND_FILES = {
+        kill:       'snd_kill.mp3',
+        playerHit:  'snd_player_hit.mp3',
+        bossWarn:   'snd_boss_warn.mp3',
+        bossKill:   'snd_boss_kill.mp3',
+        gameover:   'snd_gameover.mp3',
+    };
+
+    // Громкость для каждого звука
+    const SOUND_VOLUME = {
+        kill:       0.5,
+        playerHit:  0.6,
+        bossWarn:   0.6,
+        bossKill:   0.7,
+        gameover:   0.7,
+    };
+
+    // Музыка — отдельно через Audio (лучше для длинных треков)
+    const musicTrack = new Audio('crystals.mp3');
+    musicTrack.loop = true;
+    musicTrack.volume = 0.4;
+    musicTrack.preload = 'auto';
+
+    // === Инициализация AudioContext ===
+    function initAudio() {
+        if (audioCtx) return;
+        try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            loadAllSounds();
+        } catch (e) {
+            console.warn('Web Audio API недоступен');
+        }
     }
 
-    function playSound(snd) {
+    // === Загрузка всех звуков в буферы ===
+    function loadAllSounds() {
+        const entries = Object.entries(SOUND_FILES);
+        let loaded = 0;
+
+        entries.forEach(([key, url]) => {
+            fetch(url)
+                .then(r => r.arrayBuffer())
+                .then(buf => audioCtx.decodeAudioData(buf))
+                .then(decoded => {
+                    soundBuffers[key] = decoded;
+                    loaded++;
+                    if (loaded === entries.length) audioReady = true;
+                })
+                .catch(() => {
+                    loaded++;
+                    if (loaded === entries.length) audioReady = true;
+                });
+        });
+    }
+
+    // === Проиграть загруженный звук ===
+    function playSound(name) {
+        if (!audioCtx || !soundBuffers[name]) return;
         try {
-            const s = snd.cloneNode();
-            s.volume = snd.volume;
-            s.play();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const source = audioCtx.createBufferSource();
+            const gain   = audioCtx.createGain();
+
+            source.buffer = soundBuffers[name];
+            gain.gain.value = SOUND_VOLUME[name] || 0.5;
+
+            source.connect(gain);
+            gain.connect(audioCtx.destination);
+            source.start(0);
         } catch (e) {}
     }
 
-    const musicTrack   = loadSound('crystals.mp3',       0.4, true);
-    const sndShoot     = loadSound('snd_shoot.mp3',      0.3);
-    const sndHit       = loadSound('snd_hit.mp3',        0.4);
-    const sndKill      = loadSound('snd_kill.mp3',       0.5);
-    const sndBossHit   = loadSound('snd_boss_hit.mp3',   0.5);
-    const sndBossKill  = loadSound('snd_boss_kill.mp3',  0.7);
-    const sndPlayerHit = loadSound('snd_player_hit.mp3', 0.6);
-    const sndGameover  = loadSound('snd_gameover.mp3',   0.7);
-    const sndWaveDone  = loadSound('snd_wave_done.mp3',  0.5);
-    const sndWaveStart = loadSound('snd_wave_start.mp3', 0.5);
-    const sndBossWarn  = loadSound('snd_boss_warn.mp3',  0.6);
+    // === Синтетические звуки (не нужны файлы!) ===
+    function playSynthShoot() {
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
 
+            const osc  = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now  = audioCtx.currentTime;
+
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(880, now);
+            osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.1);
+        } catch (e) {}
+    }
+
+    function playSynthHit() {
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc  = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now  = audioCtx.currentTime;
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.06);
+
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.08);
+        } catch (e) {}
+    }
+
+    function playSynthWave() {
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc  = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            const now  = audioCtx.currentTime;
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.4);
+        } catch (e) {}
+    }
+
+    function playSynthWaveDone() {
+        if (!audioCtx) return;
+        try {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+
+            [523, 659, 784].forEach((freq, i) => {
+                const osc  = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const t = now + i * 0.12;
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, t);
+
+                gain.gain.setValueAtTime(0.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(t);
+                osc.stop(t + 0.3);
+            });
+        } catch (e) {}
+    }
+
+    // === Музыка ===
     function startMusic() {
         musicTrack.currentTime = 0;
-        musicTrack.play().catch(() => {});
+        musicTrack.play().catch(() => {
+            setTimeout(() => musicTrack.play().catch(() => {}), 500);
+        });
     }
 
     function stopMusic() {
         musicTrack.pause();
         musicTrack.currentTime = 0;
     }
+
+    // === Разблокировка при первом тапе/клике ===
+    function unlockAudio() {
+        initAudio();
+        musicTrack.volume = 0;
+        musicTrack.play().then(() => {
+            musicTrack.pause();
+            musicTrack.currentTime = 0;
+            musicTrack.volume = 0.4;
+        }).catch(() => {
+            musicTrack.volume = 0.4;
+        });
+    }
+
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
 
     // ======= КОНФИГ =======
     const CFG = {
@@ -193,7 +362,6 @@
         ctx.save();
         ctx.translate(x, y);
 
-        // Двигатель
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#f80';
         ctx.fillStyle = '#f80';
@@ -205,7 +373,6 @@
         ctx.closePath();
         ctx.fill();
 
-        // Корпус
         ctx.shadowColor = '#0ff';
         ctx.shadowBlur = 15;
         ctx.fillStyle = '#0af';
@@ -219,7 +386,6 @@
         ctx.closePath();
         ctx.fill();
 
-        // Кабина
         ctx.fillStyle = '#0ff';
         ctx.beginPath();
         ctx.moveTo(0, -16);
@@ -236,7 +402,7 @@
     // ============================================================
     function shoot() {
         bullets.push({ x: player.x, y: player.y - 28, w: 4, h: 14 });
-        playSound(sndShoot);
+        playSynthShoot();
     }
 
     function handleFiring(dt) {
@@ -304,7 +470,6 @@
         });
     }
 
-    // Враг считается видимым когда его верхний край на экране
     function isOnScreen(e) {
         return (e.y - e.h / 2) >= 0;
     }
@@ -313,7 +478,6 @@
         for (let i = enemies.length - 1; i >= 0; i--) {
             const e = enemies[i];
 
-            // === Обычный враг ===
             if (!e.boss) {
                 e.y += e.speed;
                 if (e.zigzag) {
@@ -322,7 +486,6 @@
                 }
                 e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
 
-                // Улетел за экран
                 if (e.y > H + e.h) {
                     enemies.splice(i, 1);
                     playerHit();
@@ -330,9 +493,7 @@
                 }
             }
 
-            // === БОСС ===
             if (e.boss) {
-                // Фаза входа — летит вниз пока не на позиции
                 if (!isOnScreen(e) && !e.bossDiving) {
                     e.y += 1.5;
                     e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
@@ -340,7 +501,6 @@
                     continue;
                 }
 
-                // Движение влево-вправо
                 const bossSpeedX = 2.5 + wave * 0.3;
                 e.x += e.bossDir * bossSpeedX;
 
@@ -353,7 +513,6 @@
                     e.bossDir = -1;
                 }
 
-                // Таймер ныряния
                 if (!e.bossDiving && !e.bossReturning) {
                     e.bossDiveTimer += dt;
                     const diveInterval = Math.max(1800, 4000 - wave * 200);
@@ -363,7 +522,6 @@
                         e.bossDiveTimer = 0;
                     }
 
-                    // Парит наверху с лёгкой качкой
                     const targetY = H * 0.15 + e.h / 2;
                     if (e.y < targetY - 3) {
                         e.y += 1;
@@ -373,14 +531,12 @@
                     e.y += Math.sin(Date.now() / 800) * 0.4;
                 }
 
-                // === НЫРЯНИЕ — летит к игроку ===
                 if (e.bossDiving) {
                     const diveSpeed = 5 + wave * 0.4;
                     const diveTarget = player.y - 10;
 
                     e.y += diveSpeed;
 
-                    // Долетел до уровня игрока или ниже
                     if (e.y >= diveTarget) {
                         e.y = diveTarget;
                         e.bossDiving = false;
@@ -388,7 +544,6 @@
                         doShake(6, 200);
                     }
 
-                    // Защита от вылета за экран
                     if (e.y > H - 30) {
                         e.y = H - 30;
                         e.bossDiving = false;
@@ -397,7 +552,6 @@
                     }
                 }
 
-                // === ВОЗВРАТ НАВЕРХ ===
                 if (e.bossReturning) {
                     const returnSpeed = 2.5;
                     const returnTarget = H * 0.15 + e.h / 2;
@@ -420,7 +574,6 @@
 
     function drawEnemies() {
         for (const e of enemies) {
-            // Не рисуем пока верхний край не на экране (обычные враги)
             if (!e.boss && !isOnScreen(e)) continue;
 
             ctx.save();
@@ -432,7 +585,6 @@
 
             ctx.drawImage(e.img, e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
 
-            // HP-бар (для всех с maxHp > 1)
             if (e.maxHp > 1 && e.hp > 0) {
                 const bw = e.w * (e.boss ? 1.3 : 1);
                 const bh = e.boss ? 8 : 5;
@@ -449,7 +601,6 @@
                 ctx.strokeRect(bx, by, bw, bh);
             }
 
-            // Текст босса
             if (e.boss && e.hp > 0) {
                 const by = e.y - e.h / 2 - 28;
                 ctx.fillStyle = '#ff0';
@@ -552,13 +703,10 @@
     }
 
     function checkCollisions() {
-        // Пули → Враги (ТОЛЬКО если враг на экране!)
         for (let bi = bullets.length - 1; bi >= 0; bi--) {
             const b = bullets[bi];
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
-
-                // Не бьём пока не появился на экране
                 if (!isOnScreen(e)) continue;
 
                 if (dist(b.x, b.y, e.x, e.y) < e.w / 2 + 6) {
@@ -567,11 +715,7 @@
                     e.flash = 80;
                     boom(b.x, b.y, 4, '#0ff');
 
-                    if (e.boss) {
-                        playSound(sndBossHit);
-                    } else {
-                        playSound(sndHit);
-                    }
+                    playSynthHit();
 
                     if (e.hp <= 0) {
                         const pts = e.boss ? 500 * wave : 100;
@@ -585,9 +729,9 @@
                             bossAlive = false;
                             doShake(16, 600);
                             addText(W / 2, H / 2, 'ГАЛЮХА УНИЧТОЖЕНА!', '#0f0', 26, 0.008);
-                            playSound(sndBossKill);
+                            playSound('bossKill');
                         } else {
-                            playSound(sndKill);
+                            playSound('kill');
                         }
                         enemies.splice(ei, 1);
                     }
@@ -596,7 +740,6 @@
             }
         }
 
-        // Игрок → Враги (ТОЛЬКО видимые!)
         if (!invincible) {
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
@@ -622,7 +765,7 @@
         invincible = true;
         invTimer = CFG.invincTime;
         doShake(8, 250);
-        playSound(sndPlayerHit);
+        playSound('playerHit');
 
         if (lives <= 0) gameOver();
     }
@@ -631,7 +774,7 @@
         running = false;
         cancelAnimationFrame(animId);
         stopMusic();
-        playSound(sndGameover);
+        playSound('gameover');
 
         elFinalScore.textContent = score;
         elFinalWave.textContent  = wave;
@@ -667,13 +810,13 @@
             spawnEnemy(true);
             bossAlive = true;
             addText(W / 2, H / 2 - 30, '⚠ БОСС-ГАЛЮХА ⚠', '#ff0', 28, 0.008);
-            playSound(sndBossWarn);
+            playSound('bossWarn');
         } else {
             toSpawn = CFG.enemyCount + wave * 2;
             spawnInterval = Math.max(350, CFG.spawnDelay - wave * 40);
             spawnTimer = 0;
             addText(W / 2, H / 2, 'ВОЛНА ' + wave, '#0ff', 32, 0.008);
-            playSound(sndWaveStart);
+            playSynthWave();
         }
 
         elWave.textContent = wave;
@@ -694,7 +837,7 @@
                 waveState = 'cooldown';
                 wavePauseTimer = 0;
                 addText(W / 2, H / 2, '✔ ВОЛНА ПРОЙДЕНА!', '#0f0', 26, 0.008);
-                playSound(sndWaveDone);
+                playSynthWaveDone();
             }
         } else {
             wavePauseTimer += dt;
@@ -746,6 +889,7 @@
     //  СТАРТ / РЕСТАРТ / МЕНЮ
     // ============================================================
     function startGame() {
+        initAudio();
         resize();
 
         score = 0;
@@ -768,7 +912,7 @@
         initPlayer();
         showScreen(gameScreen);
 
-        startMusic();
+        setTimeout(() => startMusic(), 300);
 
         running  = true;
         lastTime = performance.now();
@@ -787,8 +931,6 @@
     // ============================================================
     //  УПРАВЛЕНИЕ
     // ============================================================
-
-    // --- Клавиатура ---
     window.addEventListener('keydown', e => {
         keys[e.code] = true;
         if (e.code === 'Space') { e.preventDefault(); firing = true; }
@@ -798,11 +940,10 @@
         if (e.code === 'Space') firing = false;
     });
 
-    // --- Мышь (ДЕСКТОП) ---
     canvas.addEventListener('mousemove', e => {
         if (running && !isMobile) pointerX = e.clientX;
     });
-    canvas.addEventListener('mousedown', e => {
+    canvas.addEventListener('mousedown', () => {
         if (running && !isMobile) firing = true;
     });
     canvas.addEventListener('mouseup', () => {
@@ -812,7 +953,6 @@
         if (!isMobile) pointerX = null;
     });
 
-    // --- Тач (МОБИЛКА: палец = двигаешь + стреляешь) ---
     canvas.addEventListener('touchstart', e => {
         e.preventDefault();
         if (!running) return;
@@ -838,7 +978,6 @@
         }
     }, { passive: false });
 
-    // --- Кнопки UI ---
     btnPlay.addEventListener('click', startGame);
     btnRestart.addEventListener('click', startGame);
     btnMenu.addEventListener('click', toMenu);
