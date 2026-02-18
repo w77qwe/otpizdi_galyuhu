@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Симулятор: отпизди Галюху</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- ===== ГЛАВНЫЙ ЭКРАН ===== -->
+    <div id="menu-screen">
+        <div class="stars-bg" id="stars-menu"></div>
+        <div class="menu-content">
+            <div class="studio-logo">
+                <span class="holding">ВайкокинStar Games</span>
+                <span class="studio">AUTISTIC GAMES</span>
+            </div>
+            <h1 class="game-title">
+                <span class="title-sub">Симулятор:</span>
+                <span class="title-main">ОТПИЗДИ ГАЛЮХУ</span>
+            </h1>
+            <div class="menu-buttons">
+                <button id="btn-play" class="btn-neon">🚀 ИГРАТЬ</button>
+            </div>
+            <div class="menu-footer">
+                <p>v1.0 | © Autistic Games, 2026</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
+    <div id="game-screen" class="hidden">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            <div id="score-display">СЧЁТ: <span id="score">0</span></div>
+            <div id="wave-display">ВОЛНА: <span id="wave">1</span></div>
+            <div id="lives-display">❤️ <span id="lives">3</span></div>
+        </div>
+        <button id="btn-fire" class="fire-button">🔥</button>
+    </div>
+
+    <!-- ===== ЭКРАН GAME OVER ===== -->
+    <div id="gameover-screen" class="hidden">
+        <div class="stars-bg" id="stars-gameover"></div>
+        <div class="gameover-content">
+            <h2 class="gameover-title">ПОЗОРИЩЕ, СУКА!</h2>
+            <p class="gameover-subtitle">Тебя Галюха ёбнула! 💀</p>
+            <p class="final-score">Набрано очков: <span id="final-score">0</span></p>
+            <p class="final-wave">Дожил до волны: <span id="final-wave">1</span></p>
+            <button id="btn-restart" class="btn-neon">🔄 ПОПРОБУЙ ЕЩЁ, ЧЁРТ</button>
+            <button id="btn-menu" class="btn-neon btn-secondary">🏠 В МЕНЮ</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

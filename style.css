@@ -1,0 +1,373 @@
+/* ===== СБРОС И БАЗА ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a1a;
+    font-family: 'Orbitron', sans-serif;
+    color: #fff;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ===== ЗВЁЗДНЫЙ ФОН ===== */
+.stars-bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, #0d0d2b 0%, #050510 70%, #000 100%);
+    overflow: hidden;
+    z-index: 0;
+}
+
+.stars-bg::before,
+.stars-bg::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 2px at 160px 30px, #fff, transparent);
+    background-size: 200px 100px;
+    animation: starsMove 4s linear infinite;
+}
+
+.stars-bg::after {
+    background-image:
+        radial-gradient(1px 1px at 50px 60px, #fff, transparent),
+        radial-gradient(2px 2px at 100px 20px, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1px 1px at 70px 90px, #fff, transparent);
+    background-size: 150px 120px;
+    animation: starsMove 6s linear infinite;
+    opacity: 0.7;
+}
+
+@keyframes starsMove {
+    from { transform: translateY(-100px); }
+    to   { transform: translateY(0); }
+}
+
+/* ===== ГЛАВНЫЙ ЭКРАН ===== */
+#menu-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.menu-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 20px;
+    max-width: 600px;
+    width: 90%;
+}
+
+/* Студия */
+.studio-logo {
+    margin-bottom: 40px;
+    animation: fadeInDown 1s ease-out;
+}
+
+.holding {
+    display: block;
+    font-size: 0.65rem;
+    color: #666;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.studio {
+    display: block;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1.1rem;
+    color: #ff4444;
+    text-shadow: 0 0 10px #ff4444, 0 0 30px #ff000066;
+    letter-spacing: 4px;
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Название игры */
+.game-title {
+    margin-bottom: 50px;
+    animation: fadeInUp 1.2s ease-out;
+}
+
+.title-sub {
+    display: block;
+    font-size: 1rem;
+    color: #888;
+    letter-spacing: 5px;
+    margin-bottom: 10px;
+}
+
+.title-main {
+    display: block;
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(1rem, 4vw, 1.8rem);
+    color: #ffcc00;
+    text-shadow:
+        0 0 10px #ffcc00,
+        0 0 30px #ff990066,
+        0 0 60px #ff660033;
+    line-height: 1.4;
+    animation: titleGlow 3s ease-in-out infinite;
+}
+
+/* Кнопки */
+.menu-buttons {
+    margin-bottom: 40px;
+    animation: fadeInUp 1.5s ease-out;
+}
+
+.btn-neon {
+    display: inline-block;
+    padding: 16px 48px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0ff;
+    background: transparent;
+    border: 2px solid #0ff;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px #0ff;
+    box-shadow:
+        0 0 15px #0ff44,
+        inset 0 0 15px #0ff22;
+    transition: all 0.3s ease;
+    margin: 8px;
+}
+
+.btn-neon:hover,
+.btn-neon:active {
+    color: #000;
+    background: #0ff;
+    box-shadow:
+        0 0 30px #0ff,
+        0 0 60px #0ff66;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    color: #ff4444;
+    border-color: #ff4444;
+    text-shadow: 0 0 10px #ff4444;
+    box-shadow:
+        0 0 15px #ff444444,
+        inset 0 0 15px #ff444422;
+    font-size: 0.85rem;
+    padding: 12px 32px;
+}
+
+.btn-secondary:hover,
+.btn-secondary:active {
+    color: #000;
+    background: #ff4444;
+    box-shadow: 0 0 30px #ff4444;
+}
+
+/* Футер */
+.menu-footer {
+    animation: fadeInUp 2s ease-out;
+}
+
+.menu-footer p {
+    font-size: 0.6rem;
+    color: #444;
+    letter-spacing: 2px;
+}
+
+/* ===== ИГРОВОЙ ЭКРАН ===== */
+#game-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #050510;
+    z-index: 100;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* HUD */
+#hud {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+    z-index: 10;
+    font-size: clamp(0.65rem, 2.5vw, 0.9rem);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+#score-display {
+    color: #0ff;
+    text-shadow: 0 0 8px #0ff;
+}
+
+#wave-display {
+    color: #ffcc00;
+    text-shadow: 0 0 8px #ffcc00;
+}
+
+#lives-display {
+    color: #ff4444;
+    text-shadow: 0 0 8px #ff4444;
+}
+
+/* Кнопка стрельбы */
+.fire-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid #ff4444;
+    background: rgba(255, 68, 68, 0.2);
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow:
+        0 0 20px #ff444466,
+        inset 0 0 20px #ff444433;
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.fire-button:active {
+    transform: scale(0.9);
+    background: rgba(255, 68, 68, 0.5);
+    box-shadow: 0 0 40px #ff4444;
+}
+
+/* ===== GAME OVER ===== */
+#gameover-screen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.gameover-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 20px;
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.gameover-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(1.2rem, 5vw, 2.5rem);
+    color: #ff4444;
+    text-shadow: 0 0 20px #ff4444, 0 0 50px #ff000066;
+    margin-bottom: 10px;
+    animation: shake 0.5s ease-in-out;
+}
+
+.gameover-subtitle {
+    font-size: clamp(0.8rem, 3vw, 1.2rem);
+    color: #ff8888;
+    margin-bottom: 30px;
+}
+
+.final-score, .final-wave {
+    font-size: clamp(0.7rem, 2.5vw, 1rem);
+    color: #0ff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 8px #0ff;
+}
+
+.final-wave {
+    margin-bottom: 30px;
+    color: #ffcc00;
+    text-shadow: 0 0 8px #ffcc00;
+}
+
+/* ===== АНИМАЦИИ ===== */
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPulse {
+    0%, 100% { text-shadow: 0 0 10px #ff4444, 0 0 30px #ff000066; }
+    50%      { text-shadow: 0 0 20px #ff4444, 0 0 50px #ff0000aa; }
+}
+
+@keyframes titleGlow {
+    0%, 100% { text-shadow: 0 0 10px #ffcc00, 0 0 30px #ff990066; }
+    50%      { text-shadow: 0 0 25px #ffcc00, 0 0 60px #ff9900aa, 0 0 90px #ff660044; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%      { transform: translateX(-10px); }
+    40%      { transform: translateX(10px); }
+    60%      { transform: translateX(-6px); }
+    80%      { transform: translateX(6px); }
+}
+
+/* ===== АДАПТИВ ===== */
+@media (max-width: 480px) {
+    .fire-button {
+        width: 70px;
+        height: 70px;
+        bottom: 20px;
+        right: 20px;
+        font-size: 1.6rem;
+    }
+
+    .btn-neon {
+        padding: 14px 36px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .fire-button {
+        width: 90px;
+        height: 90px;
+        font-size: 2.2rem;
+    }
+}
