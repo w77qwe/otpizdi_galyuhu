@@ -67,16 +67,18 @@ html, body {
     top: 0; left: 0;
     width: 100%; height: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 100;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .menu-content {
     position: relative;
     z-index: 1;
     text-align: center;
-    padding: 20px;
+    padding: 40px 20px 60px;
     max-width: 600px;
     width: 90%;
 }
@@ -89,11 +91,14 @@ html, body {
 
 .holding {
     display: block;
-    font-size: 0.65rem;
-    color: #666;
-    letter-spacing: 3px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.55rem;
+    color: #bf5fff;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px #bf5fff, 0 0 20px #bf5fff55;
+    line-height: 1.6;
 }
 
 .studio {
@@ -114,22 +119,24 @@ html, body {
 
 .title-sub {
     display: block;
-    font-size: 1rem;
-    color: #888;
-    letter-spacing: 5px;
-    margin-bottom: 10px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.75rem;
+    color: #0ff;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+    text-shadow: 0 0 8px #0ff, 0 0 20px #0ff55;
 }
 
 .title-main {
     display: block;
     font-family: 'Press Start 2P', cursive;
-    font-size: clamp(1rem, 4vw, 1.8rem);
+    font-size: clamp(0.85rem, 3.8vw, 1.6rem);
     color: #ffcc00;
     text-shadow:
         0 0 10px #ffcc00,
         0 0 30px #ff990066,
         0 0 60px #ff660033;
-    line-height: 1.4;
+    line-height: 1.5;
     animation: titleGlow 3s ease-in-out infinite;
 }
 
@@ -142,8 +149,8 @@ html, body {
 .btn-neon {
     display: inline-block;
     padding: 16px 48px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.1rem;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.8rem;
     font-weight: 700;
     color: #0ff;
     background: transparent;
@@ -158,6 +165,7 @@ html, body {
         inset 0 0 15px #0ff22;
     transition: all 0.3s ease;
     margin: 8px;
+    line-height: 1.5;
 }
 
 .btn-neon:hover,
@@ -177,8 +185,8 @@ html, body {
     box-shadow:
         0 0 15px #ff444444,
         inset 0 0 15px #ff444422;
-    font-size: 0.85rem;
-    padding: 12px 32px;
+    font-size: 0.65rem;
+    padding: 12px 28px;
 }
 
 .btn-secondary:hover,
@@ -188,15 +196,127 @@ html, body {
     box-shadow: 0 0 30px #ff4444;
 }
 
-/* Футер */
+/* ===== FAQ СЕКЦИЯ ===== */
+.faq-section {
+    margin: 30px auto 40px;
+    max-width: 520px;
+    width: 100%;
+    text-align: left;
+    animation: fadeInUp 1.8s ease-out;
+}
+
+.faq-item {
+    border: 1px solid #333;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+}
+
+.faq-item:hover {
+    border-color: #555;
+}
+
+.faq-item.open {
+    border-color: #0ff;
+    box-shadow: 0 0 12px #0ff22;
+}
+
+.faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.5rem, 2vw, 0.65rem);
+    color: #ffcc00;
+    text-shadow: 0 0 6px #ffcc0066;
+    line-height: 1.6;
+    transition: color 0.3s ease;
+}
+
+.faq-question:hover {
+    color: #fff;
+}
+
+.faq-plus {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                color 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 12px;
+    display: inline-block;
+    width: 30px;
+    text-align: center;
+}
+
+.faq-item.open .faq-plus {
+    transform: rotate(135deg);
+    color: #ff4444;
+    text-shadow: 0 0 10px #ff4444;
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.34, 1.2, 0.64, 1),
+                padding 0.4s ease;
+    padding: 0 18px;
+}
+
+.faq-item.open .faq-answer {
+    max-height: 2000px;
+    padding: 0 18px 20px;
+}
+
+.faq-answer p {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.4rem, 1.6vw, 0.52rem);
+    color: #aaa;
+    line-height: 2;
+    text-shadow: 0 0 4px #ffffff22;
+}
+
+/* Фотка в FAQ */
+.faq-photo-wrap {
+    width: 100%;
+    margin-bottom: 16px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #333;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+}
+
+.faq-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    transition: transform 0.4s ease;
+}
+
+.faq-photo-wrap:hover .faq-photo {
+    transform: scale(1.03);
+}
+
+/* ===== ФУТЕР ===== */
 .menu-footer {
     animation: fadeInUp 2s ease-out;
 }
 
 .menu-footer p {
-    font-size: 0.6rem;
-    color: #444;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.45rem;
+    color: #0ff;
     letter-spacing: 2px;
+    text-shadow: 0 0 6px #0ff55;
+    line-height: 1.6;
 }
 
 /* ===== ИГРОВОЙ ЭКРАН ===== */
@@ -212,6 +332,7 @@ html, body {
     display: block;
     width: 100%;
     height: 100%;
+    touch-action: none;
 }
 
 /* HUD */
@@ -225,7 +346,8 @@ html, body {
     padding: 12px 20px;
     background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
     z-index: 10;
-    font-size: clamp(0.65rem, 2.5vw, 0.9rem);
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.45rem, 2vw, 0.7rem);
     font-weight: 700;
     letter-spacing: 1px;
 }
@@ -243,33 +365,6 @@ html, body {
 #lives-display {
     color: #ff4444;
     text-shadow: 0 0 8px #ff4444;
-}
-
-/* Кнопка стрельбы */
-.fire-button {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    border: 3px solid #ff4444;
-    background: rgba(255, 68, 68, 0.2);
-    color: #fff;
-    font-size: 2rem;
-    cursor: pointer;
-    z-index: 10;
-    box-shadow:
-        0 0 20px #ff444466,
-        inset 0 0 20px #ff444433;
-    transition: all 0.15s ease;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.fire-button:active {
-    transform: scale(0.9);
-    background: rgba(255, 68, 68, 0.5);
-    box-shadow: 0 0 40px #ff4444;
 }
 
 /* ===== GAME OVER ===== */
@@ -293,7 +388,7 @@ html, body {
 
 .gameover-title {
     font-family: 'Press Start 2P', cursive;
-    font-size: clamp(1.2rem, 5vw, 2.5rem);
+    font-size: clamp(1rem, 4.5vw, 2.2rem);
     color: #ff4444;
     text-shadow: 0 0 20px #ff4444, 0 0 50px #ff000066;
     margin-bottom: 10px;
@@ -301,16 +396,21 @@ html, body {
 }
 
 .gameover-subtitle {
-    font-size: clamp(0.8rem, 3vw, 1.2rem);
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.55rem, 2.5vw, 0.9rem);
     color: #ff8888;
     margin-bottom: 30px;
+    text-shadow: 0 0 8px #ff444444;
+    line-height: 1.6;
 }
 
 .final-score, .final-wave {
-    font-size: clamp(0.7rem, 2.5vw, 1rem);
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.5rem, 2vw, 0.75rem);
     color: #0ff;
     margin-bottom: 8px;
     text-shadow: 0 0 8px #0ff;
+    line-height: 1.6;
 }
 
 .final-wave {
@@ -350,24 +450,26 @@ html, body {
 
 /* ===== АДАПТИВ ===== */
 @media (max-width: 480px) {
-    .fire-button {
-        width: 70px;
-        height: 70px;
-        bottom: 20px;
-        right: 20px;
-        font-size: 1.6rem;
+    .btn-neon {
+        padding: 14px 28px;
+        font-size: 0.65rem;
     }
 
-    .btn-neon {
-        padding: 14px 36px;
-        font-size: 0.9rem;
+    .menu-content {
+        padding: 30px 15px 50px;
+    }
+
+    .faq-question {
+        padding: 12px 14px;
     }
 }
 
 @media (min-width: 1024px) {
-    .fire-button {
-        width: 90px;
-        height: 90px;
-        font-size: 2.2rem;
+    .menu-content {
+        padding: 60px 20px;
+    }
+
+    .faq-section {
+        max-width: 560px;
     }
 }
