@@ -18,7 +18,6 @@
     const elFinalScore = document.getElementById('final-score');
     const elFinalWave  = document.getElementById('final-wave');
     const btnPlay      = document.getElementById('btn-play');
-    const btnFire      = document.getElementById('btn-fire');
     const btnRestart   = document.getElementById('btn-restart');
     const btnMenu      = document.getElementById('btn-menu');
 
@@ -48,10 +47,7 @@
         } catch (e) {}
     }
 
-    // Саундтрек
-    const musicTrack = loadSound('crystals.mp3', 0.4, true);
-
-    // Звуки (замени файлы на свои — названия шаблонные)
+    const musicTrack   = loadSound('crystals.mp3',       0.4, true);
     const sndShoot     = loadSound('snd_shoot.mp3',      0.3);
     const sndHit       = loadSound('snd_hit.mp3',        0.4);
     const sndKill      = loadSound('snd_kill.mp3',       0.5);
@@ -76,20 +72,20 @@
     // ======= КОНФИГ =======
     const CFG = {
         playerSpeed : 7,
-        bulletSpeed : 11,
-        fireRate    : 170,
-        enemyBaseHp : 2,
-        enemyHpGrow : 0.4,
-        enemySpeed  : 1.2,
+        bulletSpeed : 12,
+        fireRate    : 140,
+        enemyBaseHp : 1,
+        enemyHpGrow : 0.15,
+        enemySpeed  : 1.0,
+        enemySpeedGrow: 0.08,
         enemyCount  : 4,
         bossEvery   : 5,
-        bossHp      : 20,
-        bossHpGrow  : 3,
+        bossHp      : 15,
+        bossHpGrow  : 2,
         lives       : 3,
         invincTime  : 2000,
         wavePause   : 2500,
         spawnDelay  : 1200,
-        spawnSafeY  : 60,
     };
 
     // ======= СОСТОЯНИЕ =======
@@ -109,10 +105,10 @@
     let waveState, wavePauseTimer;
     let bossAlive;
 
-    let keys    = {};
-    let pointerX = null;
+    let keys      = {};
+    let pointerX  = null;
     let touchActive = false;
-    let firing  = false;
+    let firing    = false;
     let fireTimer = 0;
 
     let invincible, invTimer;
@@ -134,7 +130,7 @@
     }
 
     // ============================================================
-    //  ЗВЁЗДЫ (фон)
+    //  ЗВЁЗДЫ
     // ============================================================
     function initStars() {
         stars = [];
@@ -281,14 +277,14 @@
         const sz  = isBoss ? 110 : 48 + Math.random() * 24;
         const spd = isBoss
             ? 0.6 + wave * 0.06
-            : CFG.enemySpeed + wave * 0.12 + Math.random() * 1;
+            : CFG.enemySpeed + wave * CFG.enemySpeedGrow + Math.random() * 0.8;
         const hp  = isBoss
             ? CFG.bossHp + wave * CFG.bossHpGrow
             : Math.ceil(CFG.enemyBaseHp + wave * CFG.enemyHpGrow);
 
         enemies.push({
             x: Math.random() * (W - sz * 2) + sz,
-            y: -sz - 20,
+            y: -sz - 30,
             w: sz,
             h: sz,
             speed: spd,
@@ -300,30 +296,22 @@
             zigAmp: (Math.random() - 0.5) * 4,
             angle: Math.random() * Math.PI * 2,
             flash: 0,
-            visible: false,
 
-            // Босс — паттерн движения
-            bossPhase: 0,
             bossDir: Math.random() > 0.5 ? 1 : -1,
             bossDiveTimer: 0,
             bossDiving: false,
-            bossBaseY: 0,
+            bossReturning: false,
         });
+    }
+
+    // Враг считается видимым когда его верхний край на экране
+    function isOnScreen(e) {
+        return (e.y - e.h / 2) >= 0;
     }
 
     function updateEnemies(dt) {
         for (let i = enemies.length - 1; i >= 0; i--) {
             const e = enemies[i];
-
-            // Пока не на экране — просто двигаем вниз
-            if (!e.visible) {
-                e.y += e.speed * 1.5;
-                if (e.y + e.h / 2 >= CFG.spawnSafeY) {
-                    e.visible = true;
-                    if (e.boss) e.bossBaseY = e.y;
-                }
-                continue;
-            }
 
             // === Обычный враг ===
             if (!e.boss) {
@@ -334,6 +322,7 @@
                 }
                 e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
 
+                // Улетел за экран
                 if (e.y > H + e.h) {
                     enemies.splice(i, 1);
                     playerHit();
@@ -343,8 +332,16 @@
 
             // === БОСС ===
             if (e.boss) {
+                // Фаза входа — летит вниз пока не на позиции
+                if (!isOnScreen(e) && !e.bossDiving) {
+                    e.y += 1.5;
+                    e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
+                    if (e.flash > 0) e.flash -= dt;
+                    continue;
+                }
+
                 // Движение влево-вправо
-                const bossSpeedX = 2 + wave * 0.3;
+                const bossSpeedX = 2.5 + wave * 0.3;
                 e.x += e.bossDir * bossSpeedX;
 
                 if (e.x < e.w / 2 + 20) {
@@ -356,31 +353,62 @@
                     e.bossDir = -1;
                 }
 
-                // Ныряние к игроку
-                e.bossDiveTimer += dt;
-                const diveInterval = Math.max(2500, 5000 - wave * 200);
+                // Таймер ныряния
+                if (!e.bossDiving && !e.bossReturning) {
+                    e.bossDiveTimer += dt;
+                    const diveInterval = Math.max(1800, 4000 - wave * 200);
 
-                if (!e.bossDiving && e.bossDiveTimer > diveInterval) {
-                    e.bossDiving = true;
-                    e.bossDiveTimer = 0;
-                }
-
-                if (e.bossDiving) {
-                    e.y += 3.5 + wave * 0.2;
-                    if (e.y > H * 0.6) {
-                        e.bossDiving = false;
+                    if (e.bossDiveTimer > diveInterval) {
+                        e.bossDiving = true;
                         e.bossDiveTimer = 0;
                     }
-                } else {
-                    // Возврат на высоту
-                    const targetY = H * 0.18;
-                    if (e.y > targetY + 5) {
-                        e.y -= 1.8;
-                    } else if (e.y < targetY - 5) {
-                        e.y += 0.5;
+
+                    // Парит наверху с лёгкой качкой
+                    const targetY = H * 0.15 + e.h / 2;
+                    if (e.y < targetY - 3) {
+                        e.y += 1;
+                    } else if (e.y > targetY + 3) {
+                        e.y -= 1;
                     }
-                    // Лёгкая качка
-                    e.y += Math.sin(Date.now() / 800) * 0.5;
+                    e.y += Math.sin(Date.now() / 800) * 0.4;
+                }
+
+                // === НЫРЯНИЕ — летит к игроку ===
+                if (e.bossDiving) {
+                    const diveSpeed = 5 + wave * 0.4;
+                    const diveTarget = player.y - 10;
+
+                    e.y += diveSpeed;
+
+                    // Долетел до уровня игрока или ниже
+                    if (e.y >= diveTarget) {
+                        e.y = diveTarget;
+                        e.bossDiving = false;
+                        e.bossReturning = true;
+                        doShake(6, 200);
+                    }
+
+                    // Защита от вылета за экран
+                    if (e.y > H - 30) {
+                        e.y = H - 30;
+                        e.bossDiving = false;
+                        e.bossReturning = true;
+                        doShake(6, 200);
+                    }
+                }
+
+                // === ВОЗВРАТ НАВЕРХ ===
+                if (e.bossReturning) {
+                    const returnSpeed = 2.5;
+                    const returnTarget = H * 0.15 + e.h / 2;
+
+                    e.y -= returnSpeed;
+
+                    if (e.y <= returnTarget) {
+                        e.y = returnTarget;
+                        e.bossReturning = false;
+                        e.bossDiveTimer = 0;
+                    }
                 }
 
                 e.x = Math.max(e.w / 2, Math.min(W - e.w / 2, e.x));
@@ -392,7 +420,8 @@
 
     function drawEnemies() {
         for (const e of enemies) {
-            if (!e.visible) continue;
+            // Не рисуем пока верхний край не на экране (обычные враги)
+            if (!e.boss && !isOnScreen(e)) continue;
 
             ctx.save();
 
@@ -403,7 +432,7 @@
 
             ctx.drawImage(e.img, e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
 
-            // HP-бар (для всех кто имеет maxHp > 1)
+            // HP-бар (для всех с maxHp > 1)
             if (e.maxHp > 1 && e.hp > 0) {
                 const bw = e.w * (e.boss ? 1.3 : 1);
                 const bh = e.boss ? 8 : 5;
@@ -420,7 +449,7 @@
                 ctx.strokeRect(bx, by, bw, bh);
             }
 
-            // Текст для босса
+            // Текст босса
             if (e.boss && e.hp > 0) {
                 const by = e.y - e.h / 2 - 28;
                 ctx.fillStyle = '#ff0';
@@ -523,12 +552,14 @@
     }
 
     function checkCollisions() {
-        // Пули → Враги (ТОЛЬКО ВИДИМЫЕ!)
+        // Пули → Враги (ТОЛЬКО если враг на экране!)
         for (let bi = bullets.length - 1; bi >= 0; bi--) {
             const b = bullets[bi];
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
-                if (!e.visible) continue; // ← ВАЖНО: не бьём невидимых
+
+                // Не бьём пока не появился на экране
+                if (!isOnScreen(e)) continue;
 
                 if (dist(b.x, b.y, e.x, e.y) < e.w / 2 + 6) {
                     bullets.splice(bi, 1);
@@ -565,11 +596,11 @@
             }
         }
 
-        // Игрок → Враги (ТОЛЬКО ВИДИМЫЕ!)
+        // Игрок → Враги (ТОЛЬКО видимые!)
         if (!invincible) {
             for (let ei = enemies.length - 1; ei >= 0; ei--) {
                 const e = enemies[ei];
-                if (!e.visible) continue;
+                if (!isOnScreen(e)) continue;
 
                 if (dist(player.x, player.y, e.x, e.y) < e.w / 2 + 16) {
                     if (!e.boss) enemies.splice(ei, 1);
@@ -781,23 +812,19 @@
         if (!isMobile) pointerX = null;
     });
 
-    // --- Тач (МОБИЛКА: удерживаешь = двигаешь + стреляешь) ---
+    // --- Тач (МОБИЛКА: палец = двигаешь + стреляешь) ---
     canvas.addEventListener('touchstart', e => {
         e.preventDefault();
         if (!running) return;
         touchActive = true;
-        if (e.touches.length) {
-            pointerX = e.touches[0].clientX;
-        }
-        firing = true; // автострельба при касании
+        if (e.touches.length) pointerX = e.touches[0].clientX;
+        firing = true;
     }, { passive: false });
 
     canvas.addEventListener('touchmove', e => {
         e.preventDefault();
         if (!running) return;
-        if (e.touches.length) {
-            pointerX = e.touches[0].clientX;
-        }
+        if (e.touches.length) pointerX = e.touches[0].clientX;
     }, { passive: false });
 
     canvas.addEventListener('touchend', e => {
@@ -807,20 +834,8 @@
         } else {
             pointerX = null;
             touchActive = false;
-            firing = false; // палец убран — перестаём стрелять
+            firing = false;
         }
-    }, { passive: false });
-
-    // --- Кнопка огня (оставляем для тех кто хочет) ---
-    btnFire.addEventListener('mousedown', e => {
-        e.stopPropagation(); firing = true;
-    });
-    btnFire.addEventListener('mouseup', () => { firing = false; });
-    btnFire.addEventListener('touchstart', e => {
-        e.preventDefault(); e.stopPropagation(); firing = true;
-    }, { passive: false });
-    btnFire.addEventListener('touchend', e => {
-        e.preventDefault(); e.stopPropagation(); firing = false;
     }, { passive: false });
 
     // --- Кнопки UI ---
