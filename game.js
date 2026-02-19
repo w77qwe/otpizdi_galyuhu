@@ -36,7 +36,6 @@
     let audioReady = false;
     const soundBuffers = {};
 
-    // Список звуков для загрузки
     const SOUND_FILES = {
         kill:       'snd_kill.mp3',
         playerHit:  'snd_player_hit.mp3',
@@ -45,7 +44,6 @@
         gameover:   'snd_gameover.mp3',
     };
 
-    // Громкость для каждого звука
     const SOUND_VOLUME = {
         kill:       0.5,
         playerHit:  0.6,
@@ -54,13 +52,11 @@
         gameover:   0.7,
     };
 
-    // Музыка — отдельно через Audio (лучше для длинных треков)
     const musicTrack = new Audio('crystals.mp3');
     musicTrack.loop = true;
     musicTrack.volume = 0.4;
     musicTrack.preload = 'auto';
 
-    // === Инициализация AudioContext ===
     function initAudio() {
         if (audioCtx) return;
         try {
@@ -74,7 +70,6 @@
         }
     }
 
-    // === Загрузка всех звуков в буферы ===
     function loadAllSounds() {
         const entries = Object.entries(SOUND_FILES);
         let loaded = 0;
@@ -95,7 +90,6 @@
         });
     }
 
-    // === Проиграть загруженный звук ===
     function playSound(name) {
         if (!audioCtx || !soundBuffers[name]) return;
         try {
@@ -113,7 +107,7 @@
         } catch (e) {}
     }
 
-    // === Синтетические звуки (не нужны файлы!) ===
+    // === Синтетические звуки ===
     function playSynthShoot() {
         if (!audioCtx) return;
         try {
@@ -127,7 +121,7 @@
             osc.frequency.setValueAtTime(880, now);
             osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
 
-            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.setValueAtTime(0.06, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
             osc.connect(gain);
@@ -150,7 +144,7 @@
             osc.frequency.setValueAtTime(600, now);
             osc.frequency.exponentialRampToValueAtTime(200, now + 0.06);
 
-            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.setValueAtTime(0.08, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
             osc.connect(gain);
@@ -173,8 +167,8 @@
             osc.frequency.setValueAtTime(440, now);
             osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
 
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0.1, now + 0.15);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
             osc.connect(gain);
@@ -198,7 +192,7 @@
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(freq, t);
 
-                gain.gain.setValueAtTime(0.2, t);
+                gain.gain.setValueAtTime(0.08, t);
                 gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
                 osc.connect(gain);
@@ -222,7 +216,7 @@
         musicTrack.currentTime = 0;
     }
 
-    // === Разблокировка при первом тапе/клике ===
+    // === Разблокировка звука ===
     function unlockAudio() {
         initAudio();
         musicTrack.volume = 0;
