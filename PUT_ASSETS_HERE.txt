@@ -1,0 +1,4 @@
+Положи сюда свои ассеты из репозитория (они там уже есть):
+shit1.png shit2.png shit3.png shit4.png shit_final.png
+snd_kill.mp3 snd_player_hit.mp3 snd_boss_warn.mp3 snd_boss_kill.mp3 snd_gameover.mp3 crystals.mp3
+В репозиторий — в КОРЕНЬ (в codebase их не переносим, пути в game.js относительные).

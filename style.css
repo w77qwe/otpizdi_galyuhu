@@ -484,3 +484,195 @@ html, body {
         max-width: 580px;
     }
 }
+
+/* ==============================================================
+   v2.0 «Зачётная сборка» — HUD-новое, баннер, выбор апгрейда
+   ============================================================== */
+
+/* --- HUD: прижимается к верхней кромке, не перекрывает канвас-баннер --- */
+#hud {
+    gap: 10px;
+    flex-wrap: wrap;
+    pointer-events: none;
+    padding-top: max(12px, env(safe-area-inset-top));
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+}
+#score-display, #wave-display, #lives-display {
+    display: flex; align-items: center; gap: 6px;
+}
+#grades-display {
+    color: #ff8a3b;
+    text-shadow: 0 0 8px #ff8a3b;
+    display: flex; align-items: center; gap: 6px;
+}
+#grades-display.low { color: #ff2b2b; text-shadow: 0 0 12px #ff2b2b; animation: gradeBlink 0.6s infinite; }
+@keyframes gradeBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+#cheat-display {
+    color: #ffd24a;
+    text-shadow: 0 0 8px #ffd24a;
+    display: flex; align-items: center; gap: 6px;
+}
+#cheat-display.ready::after { content: '[E]'; opacity: 0.75; font-size: 0.8em; }
+.hud-btn {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    border-radius: 8px;
+    color: #0ff;
+    font-size: 14px;
+    line-height: 1;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.15s, border-color 0.15s;
+}
+.hud-btn:hover { transform: scale(1.12); border-color: #0ff; }
+
+/* --- Баннер события (волна / босс / зачётка) --- */
+.banner {
+    position: fixed;
+    top: 24%;
+    left: 50%;
+    transform: translate(-50%, 0) scale(1);
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.7rem, 3.4vw, 1.5rem);
+    letter-spacing: 2px;
+    text-align: center;
+    padding: 14px 22px;
+    background: rgba(2, 4, 16, 0.55);
+    border: 1px solid rgba(0, 255, 255, 0.28);
+    border-radius: 10px;
+    color: #0ff;
+    text-shadow: 0 0 14px currentColor;
+    z-index: 15;
+    pointer-events: none;
+    animation: bannerIn 0.28s ease-out;
+    transition: opacity 0.35s ease-out;
+    max-width: 88vw;
+}
+.banner.banner-hide { opacity: 0; }
+.banner.warn { color: #ff4fd8; border-color: rgba(255, 79, 216, 0.4); animation: bannerIn 0.28s ease-out, shake 0.4s 0.2s; }
+.banner.good { color: #2bff8f; border-color: rgba(43, 255, 143, 0.4); }
+.banner.quiz { color: #ffd24a; border-color: rgba(255, 210, 74, 0.45); }
+@keyframes bannerIn {
+    from { opacity: 0; transform: translate(-50%, -14px) scale(0.94); }
+    to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* --- Экран выбора апгрейда --- */
+#upgrade-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 40%, rgba(14, 10, 44, 0.94) 0%, rgba(2, 2, 10, 0.97) 70%);
+    padding: 20px;
+}
+.picker-content { text-align: center; max-width: 980px; width: 100%; animation: fadeInUp 0.4s ease-out; }
+.picker-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(0.75rem, 3vw, 1.35rem);
+    color: #ffcc00;
+    text-shadow: 0 0 20px #ff990088;
+    margin-bottom: 8px;
+}
+.picker-sub {
+    font-family: 'Orbitron', sans-serif;
+    color: #8fd8ff;
+    font-size: clamp(0.7rem, 2.4vw, 0.95rem);
+    margin-bottom: 26px;
+}
+.upgrade-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+.upg-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    text-align: left;
+    padding: 18px 16px;
+    background: linear-gradient(160deg, rgba(0, 40, 60, 0.75) 0%, rgba(4, 8, 26, 0.9) 100%);
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    border-radius: 12px;
+    color: #dffbff;
+    font-family: 'Orbitron', sans-serif;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.upg-card:hover {
+    transform: translateY(-6px);
+    border-color: #0ff;
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.22), inset 0 0 30px rgba(0, 255, 255, 0.08);
+}
+.upg-name {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.62rem;
+    line-height: 1.5;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff8;
+}
+.upg-tag {
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #ffcc00;
+    text-transform: uppercase;
+}
+.upg-desc {
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: #a9c6d8;
+}
+.upg-skip { opacity: 0.65; border-color: rgba(255, 120, 120, 0.35); }
+.upg-skip:hover { border-color: #ff8080; box-shadow: 0 10px 30px rgba(255, 80, 80, 0.18); }
+.upg-skip .upg-name { color: #ff8080; text-shadow: 0 0 10px #f008; }
+
+/* --- Плашка патча и подсказки на меню --- */
+.patch-note {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.62rem, 2vw, 0.8rem);
+    color: #2bff8f;
+    text-shadow: 0 0 10px #2bff8f66;
+    margin: 10px 0 4px;
+    letter-spacing: 0.5px;
+}
+.menu-hint {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 18px;
+    margin-top: 16px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.55rem, 1.9vw, 0.72rem);
+    color: #7fb8d8;
+    letter-spacing: 1px;
+}
+.menu-hint b { color: #0ff; }
+.final-upg {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(0.65rem, 2.2vw, 0.85rem);
+    color: #8fd8ff;
+    margin-bottom: 26px;
+    line-height: 1.6;
+}
+.final-upg span { color: #ffcc00; }
+
+/* --- Мелкий экран: всё компактнее, карточки в столбик --- */
+@media (max-width: 560px) {
+    #hud { font-size: 0.46rem; gap: 6px; padding: 8px 10px; }
+    .banner { top: 18%; padding: 10px 12px; letter-spacing: 1px; }
+    .upgrade-cards { grid-template-columns: 1fr; gap: 10px; }
+    .upg-card { padding: 14px 12px; }
+    .upg-name { font-size: 0.56rem; }
+}
+@media (max-height: 480px) {
+    #upgrade-screen { align-items: flex-start; padding-top: 10px; }
+    .picker-sub { margin-bottom: 12px; }
+    .picker-title { margin-bottom: 4px; }
+}

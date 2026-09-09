@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Симулятор: отпизди Галюху</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#050510">
+    <title>Симулятор: отпизди Галюху — v2.0</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
@@ -20,8 +21,15 @@
                 <span class="title-sub">Симулятор:</span>
                 <span class="title-main">ОТПИЗДИ ГАЛЮХУ</span>
             </h1>
+            <p class="patch-note">v2.0 «Зачётная сборка» — игра больше не ломается на 14-й волне</p>
             <div class="menu-buttons">
                 <button id="btn-play" class="btn-neon">🚀 ИГРАТЬ</button>
+                <div class="menu-hint">
+                    <span>🖱 мышь / <b>A D</b> — движение</span>
+                    <span><b>SPACE</b> / клик — огонь</span>
+                    <span><b>E</b> — зачётка</span>
+                    <span><b>P</b> — пауза</span>
+                </div>
             </div>
 
             <!-- ===== FAQ СЕКЦИЯ ===== -->
@@ -45,10 +53,20 @@
                         <p>Внезапно решивший Сорокин Максим, что существует какой-то холдинг, дал объяснение: «Аутистик Геймс... Да, это, так сказать, студия под моим крылом, так как я раньше занимался разработкой маленьких игр с помощью шаблонных сайтов и программ-конструкторов. С появлением современных технологий разработкой стало заниматься проще. Ну и что-то мы сидим на скамейке в школе, и от нехуй делать я спрашиваю своих коллег, как могла бы называться наша студия. Наша именно в том понятии, что мы вместе будем заниматься разработкой игр, но разницы особо нет, что там, что здесь ты придумываешь сам, разрабатываешь сам, а остальные просто еблом щёлкают, даже не зная, что они тоже входят в состав студии»</p>
                     </div>
                 </div>
+
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Что изменилось в v2.0?</span>
+                        <span class="faq-plus">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>В v1.0 чем выше волна, тем невозможнее было играть — и это был не баланс, а баг арифметики: с 14-й волны Галюхи спавнились быстрее, чем их можно было убить при 100% точности, а каждая долетевшая до низа Галюха снимала жизнь из трёх. Починили: появился гейм-мастер, который следит, чтобы темп волны никогда не превышал 1.4× от того, сколько Галюх вы реально успеваете убить (при 100% точности!), прокачка (1 из 3 апгрейдов после каждой волны), отдельная шкала двоек вместо мгновенной смерти за пропуск, нормальный босс с телеграфами и викториной «задача на доске». Плюс оптимизация: glow-предрендер вместо shadowBlur на каждом объекте, пулы вместо splice, физика в секундах (одинаково на 60 и 144 Гц), чёткий канвас на retina и процедурная музыка, если mp3 не загрузились.</p>
+                    </div>
+                </div>
             </div>
 
             <div class="menu-footer">
-                <p>v1.0 | © Autistic Games, 2026</p>
+                <p>v2.0 | © Autistic Games, 2026</p>
             </div>
         </div>
     </div>
@@ -59,7 +77,22 @@
         <div id="hud">
             <div id="score-display">СЧЁТ: <span id="score">0</span></div>
             <div id="wave-display">ВОЛНА: <span id="wave">1</span></div>
+            <div id="grades-display" title="Двойки в дневнике: долетевшая до низа Галюха = −1 двойка, кончились — минус жизнь">
+                📕 <span id="grades">6/6</span>
+            </div>
+            <div id="cheat-display" title="Зачётка (клавиша E): чистит нижнюю треть экрана">📝 <span id="cheat-charges">1</span></div>
             <div id="lives-display">❤️ <span id="lives">3</span></div>
+            <button id="btn-sound" class="hud-btn" title="Звук вкл/выкл">🔊</button>
+        </div>
+        <div id="banner" class="banner banner-hide"></div>
+    </div>
+
+    <!-- ===== ЭКРАН ВЫБОРА АПГРЕЙДА ===== -->
+    <div id="upgrade-screen" class="hidden">
+        <div class="picker-content">
+            <h2 class="picker-title">ПОСЛЕ УРОКА — ОЦЕНКА ЗА ТЕТРАДЬ</h2>
+            <p class="picker-sub">Галюха ставит тебе тройку. Выбери, за что:</p>
+            <div id="upgrade-cards" class="upgrade-cards"></div>
         </div>
     </div>
 
@@ -68,9 +101,10 @@
         <div class="stars-bg" id="stars-gameover"></div>
         <div class="gameover-content">
             <h2 class="gameover-title">ПОЗОРИЩЕ, СУКА!</h2>
-            <p class="gameover-subtitle">Тебя Галюха ёбнула! 💀</p>
+            <p class="gameover-subtitle" id="gameover-subtitle">Тебя Галюха ёбнула! 💀</p>
             <p class="final-score">Набрано очков: <span id="final-score">0</span></p>
             <p class="final-wave">Дожил до волны: <span id="final-wave">1</span></p>
+            <p class="final-upg">Прокачал: <span id="final-upgrades">—</span></p>
             <button id="btn-restart" class="btn-neon">🔄 ПОПРОБУЙ ЕЩЁ, ЧЁРТ</button>
             <button id="btn-menu" class="btn-neon btn-secondary">🏠 В ПИЗДУ</button>
         </div>
